@@ -118,3 +118,4 @@ tmtagsHistory
 *.sublime-workspace
 .bundle
 .idea/
+cache/

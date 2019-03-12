@@ -1,8 +1,36 @@
+import os
+import pickle
+
+from src.utils.Lang import *
+from io import open
+import unicodedata
+import string
+import re
 import random
 
-from Lang import Lang
-import re
-import unicodedata
+import torch
+import torch.nn as nn
+from torch import optim
+import torch.nn.functional as F
+import time
+import math
+
+
+def asMinutes(s):
+    m = math.floor(s / 60)
+    s -= m * 60
+    return '%dm %ds' % (m, s)
+
+
+def timeSince(since, percent):
+    now = time.time()
+    s = now - since
+    es = s / (percent)
+    rs = es - s
+    return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 MAX_LENGTH = 10
 
@@ -80,6 +108,39 @@ def prepareData(lang1, lang2, reverse=False):
     return input_lang, output_lang, pairs
 
 
+def indexesFromSentence(lang, sentence):
+    return [lang.word2index[word] for word in sentence.split(' ')]
+
+
+def tensorFromSentence(lang, sentence):
+    indexes = indexesFromSentence(lang, sentence)
+    indexes.append(EOS_token)
+    return torch.tensor(indexes, dtype=torch.long, device=device).view(-1, 1)
+
+
+def tensorsFromPair(input_lang, output_lang, pair):
+    input_tensor = tensorFromSentence(input_lang, pair[0])
+    target_tensor = tensorFromSentence(output_lang, pair[1])
+    return (input_tensor, target_tensor)
+
+
+def saveElement(element, fname):
+    path = "cache/{}".format(fname)
+    with open(path, "wb") as f:
+        pickle.dump(element, f)
+
+
+def loadElement(fname):
+    path = "cache/{}".format(fname)
+    if os.path.isfile(path):
+        with open(path, "rb") as f:
+            return pickle.load(f)
+    else:
+        return False
+
+
 if __name__ == '__main__':
     input_lang, output_lang, pairs = prepareData('eng', 'fra', True)
-    print(random.choice(pairs))
+    p = random.choice(pairs)
+    print(p)
+    print(tensorsFromPair(input_lang, output_lang, p))
