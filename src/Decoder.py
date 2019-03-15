@@ -40,6 +40,15 @@ class Decoder(nn.Module):
 
         return decoder_outputs
 
+    def decode(self,encoder_hidden):
+        decoder_outputs = torch.tensor([], device=device)
+        decoder_hidden = encoder_hidden
+        decoder_input = torch.tensor(SOS_token, device=device)
+        while decoder_input.item() != EOS_token and decoder_outputs.size()[0] < MAX_LENGTH:
+            decoder_output, decoder_hidden = self.forward(
+                decoder_input, decoder_hidden)
+            decoder_outputs = torch.cat([decoder_outputs,decoder_output])
+        return decoder_outputs
 
 if __name__ == '__main__':
     print("Decoder")

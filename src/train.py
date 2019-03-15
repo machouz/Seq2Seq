@@ -7,26 +7,27 @@ data_cache_fname = "prepared_data"
 
 
 def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion,
-          attention=False):
+          teacher_ratio=False):
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
 
     encoder_outputs, encoder_hidden = encoder.forward_sequence(input_tensor)
-    decoder_outputs = decoder.forward_sequence(encoder_hidden, target_tensor, False)
+    decoder_outputs = decoder.forward_sequence(encoder_hidden, target_tensor, teacher_ratio)
 
     loss = criterion(decoder_outputs.unsqueeze(-1), target_tensor)
+    correct = (decoder_outputs.argmax(1) == target_tensor.squeeze()).sum()
     loss.backward()
 
     encoder_optimizer.step()
     decoder_optimizer.step()
 
-    return loss.item()
+    return loss.item() / decoder_outputs.size(0), correct.item() / decoder_outputs.size(0)
 
 
 def trainIters(encoder, decoder, training_pairs, n_iters, print_every=100, learning_rate=0.01):
     start = time.time()
     print_loss_total = 0  # Reset every print_every
-    plot_loss_total = 0  # Reset every plot_every
+    print_accuracy_total = 0  # Reset every plot_every
 
     encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
     decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
@@ -37,17 +38,30 @@ def trainIters(encoder, decoder, training_pairs, n_iters, print_every=100, learn
         training_pair = training_pairs[iter - 1]
         input_tensor = training_pair[0]
         target_tensor = training_pair[1]
-
-        loss = train(input_tensor, target_tensor, encoder,
-                     decoder, encoder_optimizer, decoder_optimizer, criterion)
+        if (iter % 5 == 0):
+            loss, accuracy = train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer,
+                                   criterion, False)
+        else:
+            loss, accuracy = train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer,
+                                   criterion, True)
         print_loss_total += loss
-        plot_loss_total += loss
+        print_accuracy_total += accuracy
 
         if iter % print_every == 0:
             print_loss_avg = print_loss_total / print_every
+            print_accuracy_avg = print_accuracy_total / print_every
             print_loss_total = 0
-            print('%s (%d %d%%) %.4f' % (timeSince(start, iter / n_iters),
-                                         iter, iter / n_iters * 100, print_loss_avg))
+            print_accuracy_total = 0
+            print('%s (%d %d%%) loss: %.4f accuracy: %.4f,  ' % (timeSince(start, iter / n_iters),
+                                                                 iter, iter / n_iters * 100, print_loss_avg,
+                                                                 print_accuracy_avg))
+
+
+def translate(input, input_lang, output_lang, encoder, decoder):
+    input_tensor = tensorFromSentence(input_lang, input)
+    encoder_outputs, encoder_hidden = encoder.forward_sequence(input_tensor)
+    decoder_outputs = decoder.decode(encoder_hidden)
+    return input, sentenceFromTensor(output_lang, decoder_outputs.argmax(1))
 
 
 if __name__ == '__main__':
@@ -61,7 +75,9 @@ if __name__ == '__main__':
         print("Loaded data from cache")
     input_lang, output_lang, pairs = prepared_data
     p = random.choice(pairs)
-    encoder = Encoder(len(input_lang.word2index) + 1, 50)
+    t = tensorsFromPair(input_lang, output_lang, p)
+    t = pairFromTensor(input_lang, output_lang, t)
+    encoder = Encoder(len(input_lang.word2index) + 2, 50)
     decoder = Decoder(50, len(output_lang.word2index) + 1)
     criterion = nn.NLLLoss()
     encoder_optimizer = optim.SGD(encoder.parameters(), lr=0.01)

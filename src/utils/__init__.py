@@ -124,6 +124,23 @@ def tensorsFromPair(input_lang, output_lang, pair):
     return (input_tensor, target_tensor)
 
 
+def wordsFromIndexex(lang, tensor):
+    return [lang.index2word[index.item()] for index in tensor.squeeze()]
+
+
+def sentenceFromTensor(lang,  tensor):
+    words = wordsFromIndexex(lang, tensor)
+    if words[0] == lang.index2word[SOS_token]:
+        words.pop(0)
+    if words[-1] == lang.index2word[EOS_token]:
+        words.pop(-1)
+    return " ".join(words)
+
+def pairFromTensor(input_lang, output_lang, tensor):
+    input = sentenceFromTensor(input_lang, tensor[0])
+    target = sentenceFromTensor(output_lang, tensor[1])
+    return (input, target)
+
 def saveElement(element, fname):
     path = "cache/{}".format(fname)
     with open(path, "wb") as f:
