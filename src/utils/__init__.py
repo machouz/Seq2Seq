@@ -2,6 +2,7 @@ import os
 import pickle
 
 from src.utils.Lang import *
+from src.utils.torch_utils import *
 from io import open
 import unicodedata
 import string
@@ -9,9 +10,6 @@ import re
 import random
 
 import torch
-import torch.nn as nn
-from torch import optim
-import torch.nn.functional as F
 import time
 import math
 
@@ -30,7 +28,6 @@ def timeSince(since, percent):
     return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 MAX_LENGTH = 10
 
@@ -115,7 +112,7 @@ def indexesFromSentence(lang, sentence):
 def tensorFromSentence(lang, sentence):
     indexes = indexesFromSentence(lang, sentence)
     indexes.append(EOS_token)
-    return torch.tensor(indexes, dtype=torch.long, device=device).view(-1, 1)
+    return torch.tensor(indexes, dtype=torch.long, device=device)
 
 
 def tensorsFromPair(input_lang, output_lang, pair):
