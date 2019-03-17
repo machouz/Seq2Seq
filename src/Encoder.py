@@ -4,7 +4,7 @@ from src.utils import *
 
 
 class Encoder(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers=2, bidirectional=True):
+    def __init__(self, input_size, hidden_size, num_layers=2, bidirectional=False):
         super(Encoder, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -21,7 +21,7 @@ class Encoder(nn.Module):
         return output, hidden
 
     def initHidden(self):
-        return torch.zeros(self.num_layers * 2, 1, self.hidden_size, device=device) # (num_layers * num_directions, batch, hidden_size)
+        return torch.zeros(self.num_layers * self.num_directions, 1, self.hidden_size, device=device) # (num_layers * num_directions, batch, hidden_size)
 
     def forward_sequence(self, input):
         input_length = input.size(0)
@@ -33,7 +33,7 @@ class Encoder(nn.Module):
         for ei in range(input_length):
             encoder_output, encoder_hidden = self.forward(
                 input[ei], encoder_hidden)
-            encoder_outputs[ei] = encoder_output[0, 0]
+            encoder_outputs[ei] = encoder_output
             encoder_hiddens.append(encoder_hidden)
 
         return encoder_outputs, torch.stack(encoder_hiddens).sum(0)[-1]

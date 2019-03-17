@@ -1,3 +1,4 @@
+from src.AttentionDecoder import AttentionDecoder
 from src.utils import *
 from src.Encoder import Encoder
 from src.Decoder import Decoder
@@ -5,13 +6,15 @@ from src.Decoder import Decoder
 teacher_forcing_ratio = 0.5
 data_cache_fname = "{}_prepared_data".format(device)
 
+
 def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion,
           teacher_ratio=False):
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
 
     encoder_outputs, encoder_hidden = encoder.forward_sequence(input_tensor)
-    decoder_outputs = decoder.forward_sequence(encoder_hidden, target_tensor, teacher_ratio)
+    decoder_outputs, decoder_attns = decoder.forward_sequence(encoder_hidden, encoder_outputs, target_tensor,
+                                                              teacher_ratio)
 
     loss = criterion(decoder_outputs, target_tensor)
     correct = (decoder_outputs.argmax(1) == target_tensor.squeeze()).sum()
@@ -20,6 +23,7 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
         print('Original : %s' % sentenceFromTensor(input_lang, input_tensor))
         print('Translation : %s' % sentenceFromTensor(output_lang, target_tensor))
         print('Prediction : %s' % sentenceFromTensor(output_lang, decoder_outputs.argmax(1)))
+        print('Attention : %s' % decoder_attns)
 
     encoder_optimizer.step()
     decoder_optimizer.step()
@@ -88,7 +92,7 @@ if __name__ == '__main__':
     t = pairFromTensor(input_lang, output_lang, t)
     encoder = Encoder(len(input_lang.word2index) + 2, 50)
     encoder.to(device)
-    decoder = Decoder(50, len(output_lang.word2index) + 2)
+    decoder = AttentionDecoder(50, len(output_lang.word2index) + 2)
     decoder.to(device)
 
     criterion = nn.NLLLoss()
@@ -97,4 +101,4 @@ if __name__ == '__main__':
 
     training_pairs = [tensorsFromPair(input_lang, output_lang, p)
                       for p in pairs]
-    trainIters(encoder, decoder, training_pairs, epochs=10)
+    trainIters(encoder, decoder, training_pairs, epochs=1)
