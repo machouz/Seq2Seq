@@ -19,12 +19,12 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     loss = criterion(decoder_outputs, target_tensor)
     correct = (decoder_outputs.argmax(1) == target_tensor.squeeze()).sum()
     loss.backward()
-    if (correct.item() / decoder_outputs.size(0) > 0.85):
+    if (correct.item() / decoder_outputs.size(0) > 0.95):
+        show_attention(sentenceFromTensor(input_lang, input_tensor), sentenceFromTensor(output_lang, decoder_outputs.argmax(1)), decoder_attns.detach())
         print('Original : %s' % sentenceFromTensor(input_lang, input_tensor))
         print('Translation : %s' % sentenceFromTensor(output_lang, target_tensor))
         print('Prediction : %s' % sentenceFromTensor(output_lang, decoder_outputs.argmax(1)))
         print('Attention : %s' % decoder_attns)
-
     encoder_optimizer.step()
     decoder_optimizer.step()
 
@@ -43,6 +43,10 @@ def trainIters(encoder, decoder, training_pairs, epochs, print_every=100, learni
     n_iters = len(training_pairs)
     for epoch in range(1, epochs + 1):
         for iter, (input_tensor, target_tensor) in enumerate(training_pairs):
+            if (iter == 6000):
+                learning_rate *= 0.5
+                encoder_optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
+                decoder_optimizer = optim.Adam(decoder.parameters(), lr=learning_rate)
             if (iter % 3 == 0):
                 loss, accuracy = train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
                                        decoder_optimizer,

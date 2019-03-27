@@ -11,18 +11,22 @@ class AttentionDecoder(nn.Module):
 
         self.attention = Attention(hidden_size)
         self.embedding = nn.Embedding(output_size, hidden_size)
-        self.rnn = nn.GRU(hidden_size, hidden_size, num_layers=num_layers, dropout=0.5, batch_first=True)
+        self.rnn = nn.GRU(hidden_size * 2, hidden_size, num_layers=num_layers, dropout=0.5, batch_first=True)
         self.out = nn.Linear(hidden_size, output_size)
         self.softmax = nn.LogSoftmax(dim=1)
 
-    def forward(self, input, hidden, encoder_outputs):
+    def forward(self, input, last_hidden, encoder_outputs):
         word_embedded = self.embedding(input)
-        attn_weights = self.attention(hidden, encoder_outputs)
-        context = (attn_weights * encoder_outputs).sum(0)
+        attn_weights = self.attention(last_hidden, encoder_outputs)
 
-        output = context.view(1, 1, -1)
+        context = attn_weights @ encoder_outputs
 
-        output, hidden = self.rnn(output, hidden)
+        # context = (attn_weights * encoder_outputs).sum(0)
+
+        output = torch.cat([word_embedded, context])
+        output = output.view(1, 1, -1)
+
+        output, hidden = self.rnn(output, last_hidden)
         output = self.softmax(self.out(output[0]))
 
         return output, hidden, attn_weights
@@ -34,7 +38,7 @@ class AttentionDecoder(nn.Module):
         target_length = target_tensor.size(0)
         input_length = encoder_outputs.size(0)
         decoder_outputs = torch.zeros(target_length, self.output_size, device=device)
-        decoder_attns = torch.zeros(target_length, input_length, self.hidden_size, device=device)
+        decoder_attns = torch.zeros(target_length, input_length, device=device)
         decoder_hidden = encoder_hidden.view(self.num_layers, 1, self.hidden_size)
         decoder_input = torch.tensor(SOS_token, device=device)
         for di in range(target_length):

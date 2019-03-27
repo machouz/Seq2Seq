@@ -2,7 +2,10 @@ import os
 import pickle
 
 from src.utils.Lang import *
+from src.utils.AttentionUtils import *
 from src.utils.torch_utils import *
+from torch.autograd import Variable
+
 from io import open
 import unicodedata
 import string
