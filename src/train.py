@@ -19,12 +19,15 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     loss = criterion(decoder_outputs, target_tensor)
     correct = (decoder_outputs.argmax(1) == target_tensor.squeeze()).sum()
     loss.backward()
-    if (correct.item() / decoder_outputs.size(0) > 0.95):
-        show_attention(sentenceFromTensor(input_lang, input_tensor), sentenceFromTensor(output_lang, decoder_outputs.argmax(1)), decoder_attns.detach())
+    if ((correct.item() - 2) / (target_tensor.size(0) - 2) > 0.8):
         print('Original : %s' % sentenceFromTensor(input_lang, input_tensor))
         print('Translation : %s' % sentenceFromTensor(output_lang, target_tensor))
         print('Prediction : %s' % sentenceFromTensor(output_lang, decoder_outputs.argmax(1)))
         print('Attention : %s' % decoder_attns)
+        fig = show_attention(sentenceFromTensor(input_lang, input_tensor),
+                             sentenceFromTensor(output_lang, decoder_outputs.argmax(1)), decoder_attns.detach())
+        plt.close(fig)
+
     encoder_optimizer.step()
     decoder_optimizer.step()
 
@@ -98,10 +101,6 @@ if __name__ == '__main__':
     encoder.to(device)
     decoder = AttentionDecoder(50, len(output_lang.word2index) + 2)
     decoder.to(device)
-
-    criterion = nn.NLLLoss()
-    encoder_optimizer = optim.SGD(encoder.parameters(), lr=0.01)
-    decoder_optimizer = optim.SGD(decoder.parameters(), lr=0.01)
 
     training_pairs = [tensorsFromPair(input_lang, output_lang, p)
                       for p in pairs]

@@ -36,7 +36,7 @@ class Encoder(nn.Module):
             encoder_outputs[ei] = encoder_output
             encoder_hiddens.append(encoder_hidden)
 
-        return encoder_outputs, torch.stack(encoder_hiddens).sum(0)[-1]
+        return encoder_outputs, torch.stack(encoder_hiddens).sum(0).sum(0)[-1]
 
     def encode_seq(self, x):
         output = PackedSequence(

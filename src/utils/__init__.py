@@ -32,7 +32,7 @@ def timeSince(since, percent):
 
 
 
-MAX_LENGTH = 10
+MAX_LENGTH = 20
 
 eng_prefixes = (
     "i am ", "i m ",
@@ -130,10 +130,6 @@ def wordsFromIndexex(lang, tensor):
 
 def sentenceFromTensor(lang,  tensor):
     words = wordsFromIndexex(lang, tensor)
-    if words[0] == lang.index2word[SOS_token]:
-        words.pop(0)
-    if words[-1] == lang.index2word[EOS_token]:
-        words.pop(-1)
     return " ".join(words)
 
 def pairFromTensor(input_lang, output_lang, tensor):

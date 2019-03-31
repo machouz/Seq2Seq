@@ -3,15 +3,17 @@ from src.utils import *
 
 
 class AttentionDecoder(nn.Module):
-    def __init__(self, hidden_size, output_size, num_layers=1):
+    def __init__(self, hidden_size, output_size, num_layers=1, encoder_hidden_size=None):
         super(AttentionDecoder, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.output_size = output_size
+        if not encoder_hidden_size:
+            encoder_hidden_size = hidden_size
 
         self.attention = Attention(hidden_size)
         self.embedding = nn.Embedding(output_size, hidden_size)
-        self.rnn = nn.GRU(hidden_size * 2, hidden_size, num_layers=num_layers, dropout=0.5, batch_first=True)
+        self.rnn = nn.GRU(hidden_size + encoder_hidden_size, hidden_size, num_layers=num_layers, dropout=0.5, batch_first=True)
         self.out = nn.Linear(hidden_size, output_size)
         self.softmax = nn.LogSoftmax(dim=1)
 
