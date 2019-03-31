@@ -30,7 +30,6 @@ class AttentionDecoder(nn.Module):
         output = F.relu(output)
         output, hidden = self.rnn(output, last_hidden)
         output = self.out(output[0])
-        output = self.softmax(output)
 
         return output, hidden, attn_weights
 
@@ -61,13 +60,14 @@ class AttentionDecoder(nn.Module):
     def decode(self, encoder_hidden, encoder_outputs):
         decoder_outputs = torch.tensor([], device=device)
         decoder_attns = torch.tensor([], device=device)
-        decoder_hidden = encoder_hidden
+        decoder_hidden = encoder_hidden.view(self.num_layers, 1, self.hidden_size)
         decoder_input = torch.tensor(SOS_token, device=device)
         while decoder_input.item() != EOS_token and decoder_outputs.size()[0] < MAX_LENGTH:
             decoder_output, decoder_hidden, attn = self.forward(
                 decoder_input, decoder_hidden, encoder_outputs)
             decoder_outputs = torch.cat([decoder_outputs, decoder_output])
             decoder_attns = torch.cat([decoder_attns, attn])
+            decoder_input = decoder_output.argmax().detach()
         return decoder_outputs, decoder_attns
 
 

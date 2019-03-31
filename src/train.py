@@ -34,7 +34,7 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     return loss.item() / decoder_outputs.size(0), correct.item() / decoder_outputs.size(0)
 
 
-def trainIters(encoder, decoder, training_pairs, epochs, print_every=100, learning_rate=0.0001):
+def trainIters(encoder, decoder, training_pairs, epochs, print_every=100, learning_rate=0.001):
     start = time.time()
     print_loss_total = 0  # Reset every print_every
     print_accuracy_total = 0  # Reset every plot_every
@@ -42,22 +42,14 @@ def trainIters(encoder, decoder, training_pairs, epochs, print_every=100, learni
     encoder_optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
     decoder_optimizer = optim.Adam(decoder.parameters(), lr=learning_rate)
 
-    criterion = nn.NLLLoss()
+    criterion = nn.CrossEntropyLoss()
     n_iters = len(training_pairs)
     for epoch in range(1, epochs + 1):
         for iter, (input_tensor, target_tensor) in enumerate(training_pairs):
-            if (iter == 6000):
-                learning_rate *= 0.5
-                encoder_optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
-                decoder_optimizer = optim.Adam(decoder.parameters(), lr=learning_rate)
-            if (iter % 3 == 0):
-                loss, accuracy = train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
+            use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
+            loss, accuracy = train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
                                        decoder_optimizer,
-                                       criterion, False)
-            else:
-                loss, accuracy = train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
-                                       decoder_optimizer,
-                                       criterion, True)
+                                       criterion, use_teacher_forcing)
             print_loss_total += loss
             print_accuracy_total += accuracy
 
@@ -76,11 +68,13 @@ def translate(input, input_lang, output_lang, encoder, decoder):
     decoder.eval()
     input_tensor = tensorFromSentence(input_lang, input)
     encoder_outputs, encoder_hidden = encoder.forward_sequence(input_tensor)
-    decoder_outputs = decoder.decode(encoder_hidden)
+    decoder_outputs, decoder_attns = decoder.decode(encoder_hidden,encoder_outputs)
 
     encoder.train()
     decoder.train()
-    return input, sentenceFromTensor(output_lang, decoder_outputs.argmax(1))
+    print('Original : %s' % input)
+    print('Translation : %s' % sentenceFromTensor(output_lang, decoder_outputs.argmax(1)))
+    return decoder_outputs, decoder_attns
 
 
 if __name__ == '__main__':
@@ -104,4 +98,5 @@ if __name__ == '__main__':
 
     training_pairs = [tensorsFromPair(input_lang, output_lang, p)
                       for p in pairs]
+    translate("vous etes bon .", input_lang, output_lang, encoder, decoder)
     trainIters(encoder, decoder, training_pairs, epochs=1)
