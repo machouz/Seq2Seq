@@ -27,9 +27,10 @@ class AttentionDecoder(nn.Module):
 
         output = torch.cat([word_embedded, context])
         output = output.view(1, 1, -1)
-
+        output = F.relu(output)
         output, hidden = self.rnn(output, last_hidden)
-        output = self.softmax(self.out(output[0]))
+        output = self.out(output[0])
+        output = self.softmax(output)
 
         return output, hidden, attn_weights
 

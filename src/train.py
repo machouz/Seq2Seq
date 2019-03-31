@@ -34,7 +34,7 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     return loss.item() / decoder_outputs.size(0), correct.item() / decoder_outputs.size(0)
 
 
-def trainIters(encoder, decoder, training_pairs, epochs, print_every=100, learning_rate=0.001):
+def trainIters(encoder, decoder, training_pairs, epochs, print_every=100, learning_rate=0.0001):
     start = time.time()
     print_loss_total = 0  # Reset every print_every
     print_accuracy_total = 0  # Reset every plot_every
